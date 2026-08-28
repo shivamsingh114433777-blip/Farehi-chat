@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Farehi Chat</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#ddd;height:100vh}
+.app{height:100vh;max-width:900px;margin:auto;background:#efe7dd;display:flex;flex-direction:column}
+header{background:#075e54;color:white;padding:14px 18px;font-size:22px;font-weight:700}
+#status{font-size:12px;font-weight:400;margin-left:8px;opacity:.85}
+.login{padding:12px;background:#f0f2f5;display:flex;gap:8px}
+input{border:0;outline:0;border-radius:22px;padding:12px;flex:1}
+button{border:0;border-radius:22px;padding:0 18px;background:#128c7e;color:white;font-weight:700}
+#messages{flex:1;overflow:auto;padding:16px}
+.msg{background:white;padding:9px 12px;border-radius:10px;margin:8px 0;max-width:80%;box-shadow:0 1px 1px #ccc}
+.msg b{font-size:12px;display:block;margin-bottom:4px}
+.msg span{float:right;font-size:10px;color:#777;margin-left:12px}
+.composer{display:flex;gap:8px;padding:10px;background:#f0f2f5}
+</style>
+</head>
+<body>
+<div class="app">
+<header>Farehi 💬 <span id="status">connecting...</span></header>
+<div class="login">
+<input id="name" placeholder="Your name">
+<button onclick="saveName()">Set name</button>
+</div>
+<div id="messages"></div>
+<div class="composer">
+<input id="text" placeholder="Type a message..." onkeydown="if(event.key==='Enter')send()">
+<button onclick="send()">Send</button>
+</div>
+</div>
+<script>
+let ws, myName = localStorage.getItem("farehiName") || "";
+document.getElementById("name").value=myName;
+
+function connect(){
+  const proto=location.protocol==="https:"?"wss":"ws";
+  ws=new WebSocket(proto+"://"+location.host);
+  ws.onopen=()=>document.getElementById("status").textContent="online";
+  ws.onclose=()=>{document.getElementById("status").textContent="offline";setTimeout(connect,1500)};
+  ws.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    const div=document.createElement("div");
+    div.className="msg";
+    div.innerHTML="<b></b><span></span>";
+    div.querySelector("b").textContent=m.name;
+    div.appendChild(document.createTextNode(m.text));
+    div.querySelector("span").textContent=m.time;
+    const box=document.getElementById("messages");
+    box.appendChild(div); box.scrollTop=box.scrollHeight;
+  };
+}
+function saveName(){
+  myName=document.getElementById("name").value.trim()||"User";
+  localStorage.setItem("farehiName",myName);
+  document.getElementById("name").value=myName;
+}
+function send(){
+  if(!myName) saveName();
+  const input=document.getElementById("text"), text=input.value.trim();
+  if(!text || !ws || ws.readyState!==1) return;
+  ws.send(JSON.stringify({type:"message",name:myName,text}));
+  input.value="";
+}
+connect();
+</script>
+</body>
+</html>
